@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="logo/logo.svg" alt="NIIMBOT" width="400">
+</div>
+
 # `niimprint` &mdash; Niimbot Printer Client
 
 A Python library and CLI tool for printing to NIIMBOT label printers with multiple connectivity options.
