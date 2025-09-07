@@ -5,7 +5,7 @@ import re
 import click
 from PIL import Image
 
-from niimprint import BluetoothTransport, BluetoothOSXTransport, PrinterClient, SerialTransport
+from niimprint import BLETransport, BluetoothTransport, BluetoothOSXTransport, PrinterClient, SerialTransport
 
 
 @click.command("print")
@@ -20,7 +20,7 @@ from niimprint import BluetoothTransport, BluetoothOSXTransport, PrinterClient, 
 @click.option(
     "-c",
     "--conn",
-    type=click.Choice(["usb", "bluetooth"]),
+    type=click.Choice(["usb", "bluetooth", "ble"]),
     default="usb",
     show_default=True,
     help="Connection type",
@@ -28,7 +28,7 @@ from niimprint import BluetoothTransport, BluetoothOSXTransport, PrinterClient, 
 @click.option(
     "-a",
     "--addr",
-    help="Bluetooth MAC address OR serial device path",
+    help="Bluetooth/BLE MAC address OR serial device path",
 )
 @click.option(
     "-d",
@@ -59,7 +59,15 @@ from niimprint import BluetoothTransport, BluetoothOSXTransport, PrinterClient, 
     is_flag=True,
     help="Enable verbose logging",
 )
-def print_cmd(model, conn, addr, density, rotate, image, verbose):
+@click.option(
+    "-b",
+    "--batch-size",
+    type=click.IntRange(1, 50),
+    default=10,
+    show_default=True,
+    help="Number of packets to batch together for better performance",
+)
+def print_cmd(model, conn, addr, density, rotate, image, verbose, batch_size):
     logging.basicConfig(
         level="DEBUG" if verbose else "INFO",
         format="%(asctime)s.%(msecs)03d | %(levelname)s | %(module)s:%(funcName)s:%(lineno)d - %(message)s",
@@ -83,7 +91,15 @@ def print_cmd(model, conn, addr, density, rotate, image, verbose):
                     raise
         else:
             transport = BluetoothTransport(addr)
-    if conn == "usb":
+    elif conn == "ble":
+        assert addr is not None, "--addr argument required for BLE connection"
+        addr = addr.upper()
+        # BLE addresses can be MAC format or UUID format (especially on macOS)
+        is_mac = re.fullmatch(r"([0-9A-F]{2}:){5}([0-9A-F]{2})", addr)
+        is_uuid = re.fullmatch(r"[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}", addr)
+        assert is_mac or is_uuid, "Bad BLE address format (expected MAC address or UUID)"
+        transport = BLETransport(addr)
+    elif conn == "usb":
         port = addr if addr is not None else "auto"
         transport = SerialTransport(port=port)
 
@@ -103,7 +119,7 @@ def print_cmd(model, conn, addr, density, rotate, image, verbose):
     assert image.width <= max_width_px, f"Image width too big for {model.upper()}"
 
     printer = PrinterClient(transport)
-    printer.print_image(image, density=density)
+    printer.print_image(image, density=density, batch_size=batch_size)
 
 
 if __name__ == "__main__":

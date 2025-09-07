@@ -10,6 +10,7 @@ dependencies = [
     "click>=8.1.7",
     "pyobjc-framework-IOBluetooth>=10.0; sys_platform == 'darwin'",
     "pyobjc-core>=10.0; sys_platform == 'darwin'",
+    "bleak>=0.21.0",
 ]
 
 [build-system]
