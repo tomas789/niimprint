@@ -180,4 +180,4 @@ uv run python -m niimprint -c ble -m d110 -a "26:03:03:C3:F9:11" -i examples/D11
 
 ## Licence
 
-[MIT](https://choosealicense.com/licenses/mit/). Originally developed by [kjy00302](https://github.com/kjy00302), forked & enhanced by [AndBondStyle](https://github.com/AndBondStyle)
+[MIT](https://choosealicense.com/licenses/mit/). Originally developed by [kjy00302](https://github.com/kjy00302), forked & enhanced by [AndBondStyle](https://github.com/AndBondStyle), forked again and maintained by [Tomáš Krejčí](https://github.com/tomas789)
