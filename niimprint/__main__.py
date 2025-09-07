@@ -79,7 +79,7 @@ def print_cmd(model, conn, addr, density, rotate, image, verbose, batch_size):
     if model in ("b1", "b18", "b21"):
         max_width_px = 384
     if model in ("d11", "d110"):
-        max_width_px = 96
+        max_width_px = 120
 
     if model in ("b18", "d11", "d110") and density > 3:
         logging.warning(f"{model.upper()} only supports density up to 3")
