@@ -79,14 +79,16 @@ def print_cmd(model, conn, addr, density, rotate, image, verbose, batch_size):
         assert addr is not None, "--addr argument required for bluetooth connection"
         addr = addr.upper()
         assert re.fullmatch(r"([0-9A-F]{2}:){5}([0-9A-F]{2})", addr), "Bad MAC address"
-        
+
         # Use OSX-specific transport on macOS, fallback to Linux transport otherwise
         if platform.system() == "Darwin":
             try:
                 transport = get_transport("bluetooth_osx", address=addr)
             except ImportError as e:
                 if "PyObjC IOBluetooth framework not available" in str(e):
-                    logging.warning("PyObjC IOBluetooth not available, falling back to standard Bluetooth transport")
+                    logging.warning(
+                        "PyObjC IOBluetooth not available, falling back to standard Bluetooth transport"
+                    )
                     transport = get_transport("bluetooth", address=addr)
                 else:
                     raise
@@ -97,8 +99,12 @@ def print_cmd(model, conn, addr, density, rotate, image, verbose, batch_size):
         addr = addr.upper()
         # BLE addresses can be MAC format or UUID format (especially on macOS)
         is_mac = re.fullmatch(r"([0-9A-F]{2}:){5}([0-9A-F]{2})", addr)
-        is_uuid = re.fullmatch(r"[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}", addr)
-        assert is_mac or is_uuid, "Bad BLE address format (expected MAC address or UUID)"
+        is_uuid = re.fullmatch(
+            r"[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}", addr
+        )
+        assert is_mac or is_uuid, (
+            "Bad BLE address format (expected MAC address or UUID)"
+        )
         transport = get_transport("ble", address=addr)
     elif conn == "usb":
         port = addr if addr is not None else "auto"
@@ -117,7 +123,11 @@ def print_cmd(model, conn, addr, density, rotate, image, verbose, batch_size):
     if rotate != "0":
         # PIL library rotates counter clockwise, so we need to multiply by -1
         image = image.rotate(-int(rotate), expand=True)
-    assert image.width <= max_width_px, f"Image width too big for {model.upper()}"
+    if image.width > max_width_px:
+        raise ValueError(
+            f"Image width too big for {model.upper()}. Maximum width is {max_width_px} "
+            f"pixels but the image width is {image.width} pixels"
+        )
 
     printer = PrinterClient(transport)
     printer.print_image(image, density=density, batch_size=batch_size)
