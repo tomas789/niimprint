@@ -178,6 +178,37 @@ uv run python -m niimprint -c ble -m d110 -a "26:03:03:C3:F9:11" -i examples/D11
 - Configurable packet batching for improved performance
 - Miscellaneous refactoring / file renaming / etc.
 
+## My use case
+
+I use this library to print labels with today's date on them. It is running as a script on my Home Assistant (on Raspberry Pi 4).
+
+In `/config/niimbot/print.sh` I have a script to orchestrate the printing.
+
+```bash
+#!/bin/bash
+
+set -e 
+
+base_path="/config/niimbot"
+cd "$base_path/niimprint"
+
+uv run python utils/today.py 
+uv run python -m niimprint -m d110 -c bluetooth -a 06:25:E8:4A:12:2B -i date_image.png -r 90 -v -b 50
+```
+
+In `configuration.yaml` I have a script to print the label.
+
+```yaml
+shell_command:
+  print_niimbot: "bash /config/niimbot/print.sh"
+```
+
+This repo is checked into `/config/niimbot/niimprint`. `uv` handles installing the dependencies automatically. The script is being run inside a `homeassistant` container which fortunately has `uv` installed.
+
+I then configured a physical button to trigger this script.
+
+The BLE has an advantage of not requiring a pairing process. The disadvantage is that it was less reliable for me so I'm using bluetooth classic instead. On my MacBook Pro, both work fine.
+
 ## Licence
 
 [MIT](https://choosealicense.com/licenses/mit/). Originally developed by [kjy00302](https://github.com/kjy00302), forked & enhanced by [AndBondStyle](https://github.com/AndBondStyle), forked again and maintained by [Tomáš Krejčí](https://github.com/tomas789)
