@@ -1,14 +1,20 @@
 # `niimprint` &mdash; Niimbot Printer Client
 
-**Fork changelog & differences from original version:**
+A Python library and CLI tool for printing to NIIMBOT label printers with multiple connectivity options.
 
-- Tested on Niimbot B1, B18, B21, D11, D110 and Python 3.11
-- Added transport abstraction: switch between bluetooth and USB (serial)
-- Disabled checksum calculation for image encoding (works fine without it so far)
-- Switched to [click](https://click.palletsprojects.com/) CLI library instead of argparse
-- Integrated [pyproject.toml](https://pip.pypa.io/en/stable/reference/build-system/pyproject-toml/) and [uv](https://docs.astral.sh/uv/)
-- Integrated [pre-commit](https://pre-commit.com/) and [ruff](https://docs.astral.sh/ruff/), re-formatted all files
-- Miscellaneous refactoring / file renaming / etc.
+## ✨ Features
+
+- **🖨️ Multi-Printer Support**: Compatible with B1, B18, B21, D11, D110 models
+- **🔌 Multiple Connection Types**: 
+  - USB/Serial connection with auto-detection
+  - Classic Bluetooth with native macOS support
+  - **Bluetooth Low Energy (BLE)** with cross-platform compatibility
+- **🎯 Smart Device Discovery**: Built-in BLE scanner to find your printer automatically
+- **🔄 Image Processing**: Automatic image rotation and size validation
+- **⚡ Performance Optimized**: Configurable packet batching for faster printing
+- **🛠️ Developer Friendly**: Modern Python packaging with [uv](https://docs.astral.sh/uv/) and type hints
+- **📱 Cross-Platform**: Works on Windows, macOS, and Linux
+- **🎨 Beautiful CLI**: User-friendly command-line interface with helpful error messages
 
 ## Installation
 
@@ -23,13 +29,14 @@ Usage: niimprint [OPTIONS]
 
 Options:
   -m, --model [b1|b18|b21|d11|d110]     Niimbot printer model  [default: b21]
-  -c, --conn [usb|bluetooth]   Connection type  [default: usb]
-  -a, --addr TEXT              Bluetooth MAC address OR serial device path
-  -d, --density INTEGER RANGE  Print density  [default: 5; 1<=x<=5]
-  -r, --rotate [0|90|180|270]  Image rotation (clockwise)  [default: 0]
-  -i, --image PATH             Image path  [required]
-  -v, --verbose                Enable verbose logging
-  --help                       Show this message and exit.
+  -c, --conn [usb|bluetooth|ble]       Connection type  [default: usb]
+  -a, --addr TEXT                       Bluetooth/BLE MAC address OR serial device path
+  -d, --density INTEGER RANGE          Print density  [default: 5; 1<=x<=5]
+  -r, --rotate [0|90|180|270]          Image rotation (clockwise)  [default: 0]
+  -i, --image PATH                     Image path  [required]
+  -v, --verbose                        Enable verbose logging
+  -b, --batch-size INTEGER RANGE       Number of packets to batch together for better performance  [default: 10; 1<=x<=50]
+  --help                               Show this message and exit.
 ```
 
 ### Image orientation:
@@ -61,15 +68,74 @@ To identify which address is the correct one, run `bluetoothctl info` on the add
 
 On macOS, the application automatically uses a native Bluetooth transport implemented with PyObjC and the IOBluetooth framework. This provides better compatibility and stability compared to the Linux socket-based approach.
 
-
 The CLI will automatically detect when running on macOS and use the native transport. If PyObjC is not available, it will fall back to the standard Bluetooth transport.
+
+### Bluetooth Low Energy (BLE) connection
+
+NIIMBOT printers also support Bluetooth Low Energy (BLE) communication. According to the [NIIMBOT hardware interfacing documentation](https://niim-docs.pages.dev/documents/NIIMBOT_hardware_interfacing), most NIIMBOT printers use:
+
+- **Service UUID**: `e7810a71-73ae-499d-8c15-faa9aef0c3f2`
+- **Characteristic UUID**: `bef8d6c9-9c21-4c9e-b632-bd58c1009f9f`
+
+The BLE transport uses the [Bleak](https://bleak.readthedocs.io/) library which provides cross-platform support for Windows, macOS, and Linux.
+
+#### Finding BLE Device Addresses
+
+**Important:** On macOS, BLE devices appear with UUID-style addresses instead of traditional MAC addresses.
+
+**To discover your printer's BLE address:**
+
+1. **Use the included scanner script:**
+   ```bash
+   uv run python scan_ble_devices.py
+   ```
+
+2. **Example output:**
+   ```
+   === NIIMBOT BLE Device Scanner ===
+   🔍 Scanning for BLE devices (timeout: 10.0s)...
+
+   🖨️  Found 1 NIIMBOT printer(s):
+   ┌─────────────────────────────────────────┬──────────────────┬──────┐
+   │ Address/UUID                            │ Name             │ RSSI │
+   ├─────────────────────────────────────────┼──────────────────┼──────┤
+   │ A1B2C3D4-E5F6-7890-ABCD-EF1234567890    │ D110-AB12345678  │  -56 │
+   └─────────────────────────────────────────┴──────────────────┴──────┘
+
+   💡 Usage:
+      uv run python -m niimprint -m d110 -c ble -a A1B2C3D4-E5F6-7890-ABCD-EF1234567890 -i your_image.png
+
+   📊 Scan completed: 1 NIIMBOT printer(s), 8 other device(s)
+   ```
+
+3. **Use the discovered address:**
+   ```bash
+   uv run python -m niimprint -c ble -a "A1B2C3D4-E5F6-7890-ABCD-EF1234567890" -i image.png
+   ```
+
+**Address Format by Platform:**
+- **Linux/Windows:** Traditional MAC address format (`AA:BB:CC:DD:EE:FF`)
+- **macOS:** UUID format (`A1B2C3D4-E5F6-7890-ABCD-EF1234567890`)
+
+**Scanner Options:**
+```bash
+uv run python scan_ble_devices.py --help              # Show all options
+uv run python scan_ble_devices.py --timeout 20        # Scan for 20 seconds
+uv run python scan_ble_devices.py --show-all          # Show all BLE devices
+```
+
+**Troubleshooting:**
+- Make sure your printer is powered on and in discoverable mode
+- Run the scanner multiple times if the printer doesn't appear immediately
+- Try increasing scan timeout for better detection
+- Some printers may take time to become discoverable after power-on
 
 ## Examples
 
 **B21, USB connection, 30x15 mm (240x120 px) label**
 
 ```
-python niimprint -c usb -a /dev/ttyACM0 -r 90 -i examples/B21_30x15mm_240x120px.png
+uv run python -m niimprint -c usb -a /dev/ttyACM0 -r 90 -i examples/B21_30x15mm_240x120px.png
 ```
 
 [![](examples/B21_30x15_result.png)]()
@@ -81,6 +147,32 @@ python niimprint -c bluetooth -a "E2:E1:08:03:09:87" -r 90 -i examples/B21_80x50
 ```
 
 [![](examples/B21_80x50_result.png)]()
+
+**D110, BLE connection, 96x200 px label**
+
+```
+# macOS (UUID format)
+uv run python -m niimprint -c ble -m d110 -a "A1B2C3D4-E5F6-7890-ABCD-EF1234567890" -i examples/D110_test_96x200px.png
+
+# Linux/Windows (MAC format)  
+uv run python -m niimprint -c ble -m d110 -a "26:03:03:C3:F9:11" -i examples/D110_test_96x200px.png
+```
+
+## Changelog
+
+**Fork differences from original version:**
+
+- Tested on Niimbot B1, B18, B21, D11, D110 and Python 3.11
+- Added transport abstraction: switch between bluetooth, BLE and USB (serial)
+- Added **Bluetooth Low Energy (BLE)** support using [Bleak](https://bleak.readthedocs.io/) library for cross-platform compatibility
+- Built-in BLE device scanner for easy printer discovery
+- Disabled checksum calculation for image encoding (works fine without it so far)
+- Switched to [click](https://click.palletsprojects.com/) CLI library instead of argparse
+- Integrated [pyproject.toml](https://pip.pypa.io/en/stable/reference/build-system/pyproject-toml/) and [uv](https://docs.astral.sh/uv/)
+- Integrated [pre-commit](https://pre-commit.com/) and [ruff](https://docs.astral.sh/ruff/), re-formatted all files
+- Native macOS Bluetooth support using PyObjC and IOBluetooth framework
+- Configurable packet batching for improved performance
+- Miscellaneous refactoring / file renaming / etc.
 
 ## Licence
 
