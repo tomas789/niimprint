@@ -6,13 +6,13 @@
 - Added transport abstraction: switch between bluetooth and USB (serial)
 - Disabled checksum calculation for image encoding (works fine without it so far)
 - Switched to [click](https://click.palletsprojects.com/) CLI library instead of argparse
-- Integrated [pyproject.toml](https://pip.pypa.io/en/stable/reference/build-system/pyproject-toml/) and [poetry](https://python-poetry.org)
+- Integrated [pyproject.toml](https://pip.pypa.io/en/stable/reference/build-system/pyproject-toml/) and [uv](https://docs.astral.sh/uv/)
 - Integrated [pre-commit](https://pre-commit.com/) and [ruff](https://docs.astral.sh/ruff/), re-formatted all files
 - Miscellaneous refactoring / file renaming / etc.
 
 ## Installation
 
-Recommended method is to use [poetry](https://python-poetry.org) and install with `poetry install`. However `requirements.txt` is also provided for convenience. Project is tested on Python 3.11, but should work on other versions.
+Recommended method is to use [uv](https://docs.astral.sh/uv/) and install with `uv sync`. Project is tested on Python 3.11, but should work on other versions.
 
 ## Usage
 
@@ -61,9 +61,6 @@ To identify which address is the correct one, run `bluetoothctl info` on the add
 
 On macOS, the application automatically uses a native Bluetooth transport implemented with PyObjC and the IOBluetooth framework. This provides better compatibility and stability compared to the Linux socket-based approach.
 
-**Requirements for macOS Bluetooth:**
-- PyObjC IOBluetooth framework: `pip install pyobjc-framework-IOBluetooth`
-- macOS 10.15 or later
 
 The CLI will automatically detect when running on macOS and use the native transport. If PyObjC is not available, it will fall back to the standard Bluetooth transport.
 
