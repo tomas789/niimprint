@@ -57,6 +57,16 @@ It seems like B21 and B1 (and maybe other models?) have two bluetooth adresses. 
 
 To identify which address is the correct one, run `bluetoothctl info` on the address you want to check. The incorrect one might list `UUID: Generic Access Profile` and `UUID: Generic Attribute Profile`, while the correct one will list `UUID: Serial Port`.
 
+#### macOS Bluetooth Support
+
+On macOS, the application automatically uses a native Bluetooth transport implemented with PyObjC and the IOBluetooth framework. This provides better compatibility and stability compared to the Linux socket-based approach.
+
+**Requirements for macOS Bluetooth:**
+- PyObjC IOBluetooth framework: `pip install pyobjc-framework-IOBluetooth`
+- macOS 10.15 or later
+
+The CLI will automatically detect when running on macOS and use the native transport. If PyObjC is not available, it will fall back to the standard Bluetooth transport.
+
 ## Examples
 
 **B21, USB connection, 30x15 mm (240x120 px) label**

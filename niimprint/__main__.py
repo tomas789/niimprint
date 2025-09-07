@@ -1,10 +1,11 @@
 import logging
+import platform
 import re
 
 import click
 from PIL import Image
 
-from niimprint import BluetoothTransport, PrinterClient, SerialTransport
+from niimprint import BluetoothTransport, BluetoothOSXTransport, PrinterClient, SerialTransport
 
 
 @click.command("print")
@@ -61,14 +62,27 @@ from niimprint import BluetoothTransport, PrinterClient, SerialTransport
 def print_cmd(model, conn, addr, density, rotate, image, verbose):
     logging.basicConfig(
         level="DEBUG" if verbose else "INFO",
-        format="%(levelname)s | %(module)s:%(funcName)s:%(lineno)d - %(message)s",
+        format="%(asctime)s.%(msecs)03d | %(levelname)s | %(module)s:%(funcName)s:%(lineno)d - %(message)s",
+        datefmt="%H:%M:%S",
     )
 
     if conn == "bluetooth":
-        assert conn is not None, "--addr argument required for bluetooth connection"
+        assert addr is not None, "--addr argument required for bluetooth connection"
         addr = addr.upper()
         assert re.fullmatch(r"([0-9A-F]{2}:){5}([0-9A-F]{2})", addr), "Bad MAC address"
-        transport = BluetoothTransport(addr)
+        
+        # Use OSX-specific transport on macOS, fallback to Linux transport otherwise
+        if platform.system() == "Darwin":
+            try:
+                transport = BluetoothOSXTransport(addr)
+            except RuntimeError as e:
+                if "PyObjC IOBluetooth framework not available" in str(e):
+                    logging.warning("PyObjC IOBluetooth not available, falling back to standard Bluetooth transport")
+                    transport = BluetoothTransport(addr)
+                else:
+                    raise
+        else:
+            transport = BluetoothTransport(addr)
     if conn == "usb":
         port = addr if addr is not None else "auto"
         transport = SerialTransport(port=port)

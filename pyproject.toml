@@ -8,6 +8,8 @@ dependencies = [
     "pyserial>=3.5",
     "pillow>=10.1.0",
     "click>=8.1.7",
+    "pyobjc-framework-IOBluetooth>=10.0; sys_platform == 'darwin'",
+    "pyobjc-core>=10.0; sys_platform == 'darwin'",
 ]
 
 [build-system]
@@ -23,3 +25,8 @@ select = ["I", "F", "E"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.12.12",
+]
