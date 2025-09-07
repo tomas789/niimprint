@@ -5,7 +5,8 @@ import re
 import click
 from PIL import Image
 
-from niimprint import BLETransport, BluetoothTransport, BluetoothOSXTransport, PrinterClient, SerialTransport
+from niimprint.printer import PrinterClient
+from niimprint.transport import get_transport
 
 
 @click.command("print")
@@ -82,15 +83,15 @@ def print_cmd(model, conn, addr, density, rotate, image, verbose, batch_size):
         # Use OSX-specific transport on macOS, fallback to Linux transport otherwise
         if platform.system() == "Darwin":
             try:
-                transport = BluetoothOSXTransport(addr)
-            except RuntimeError as e:
+                transport = get_transport("bluetooth_osx", address=addr)
+            except ImportError as e:
                 if "PyObjC IOBluetooth framework not available" in str(e):
                     logging.warning("PyObjC IOBluetooth not available, falling back to standard Bluetooth transport")
-                    transport = BluetoothTransport(addr)
+                    transport = get_transport("bluetooth", address=addr)
                 else:
                     raise
         else:
-            transport = BluetoothTransport(addr)
+            transport = get_transport("bluetooth", address=addr)
     elif conn == "ble":
         assert addr is not None, "--addr argument required for BLE connection"
         addr = addr.upper()
@@ -98,10 +99,10 @@ def print_cmd(model, conn, addr, density, rotate, image, verbose, batch_size):
         is_mac = re.fullmatch(r"([0-9A-F]{2}:){5}([0-9A-F]{2})", addr)
         is_uuid = re.fullmatch(r"[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}", addr)
         assert is_mac or is_uuid, "Bad BLE address format (expected MAC address or UUID)"
-        transport = BLETransport(addr)
+        transport = get_transport("ble", address=addr)
     elif conn == "usb":
         port = addr if addr is not None else "auto"
-        transport = SerialTransport(port=port)
+        transport = get_transport("serial", port=port)
 
     if model in ("b1", "b18", "b21"):
         max_width_px = 384
