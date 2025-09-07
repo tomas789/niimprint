@@ -75,6 +75,27 @@ def print_cmd(model, conn, addr, density, rotate, image, verbose, batch_size):
         datefmt="%H:%M:%S",
     )
 
+    # Validate image size
+    if model in ("b1", "b18", "b21"):
+        max_width_px = 384
+    if model in ("d11", "d110"):
+        max_width_px = 96
+
+    if model in ("b18", "d11", "d110") and density > 3:
+        logging.warning(f"{model.upper()} only supports density up to 3")
+        density = 3
+
+    image = Image.open(image)
+    if rotate != "0":
+        # PIL library rotates counter clockwise, so we need to multiply by -1
+        image = image.rotate(-int(rotate), expand=True)
+    if image.width > max_width_px:
+        raise ValueError(
+            f"Image width too big for {model.upper()}. Maximum width is {max_width_px} "
+            f"pixels but the image width is {image.width} pixels"
+        )
+
+    # Initialize transport
     if conn == "bluetooth":
         assert addr is not None, "--addr argument required for bluetooth connection"
         addr = addr.upper()
@@ -110,25 +131,7 @@ def print_cmd(model, conn, addr, density, rotate, image, verbose, batch_size):
         port = addr if addr is not None else "auto"
         transport = get_transport("serial", port=port)
 
-    if model in ("b1", "b18", "b21"):
-        max_width_px = 384
-    if model in ("d11", "d110"):
-        max_width_px = 96
-
-    if model in ("b18", "d11", "d110") and density > 3:
-        logging.warning(f"{model.upper()} only supports density up to 3")
-        density = 3
-
-    image = Image.open(image)
-    if rotate != "0":
-        # PIL library rotates counter clockwise, so we need to multiply by -1
-        image = image.rotate(-int(rotate), expand=True)
-    if image.width > max_width_px:
-        raise ValueError(
-            f"Image width too big for {model.upper()}. Maximum width is {max_width_px} "
-            f"pixels but the image width is {image.width} pixels"
-        )
-
+    # Print image
     printer = PrinterClient(transport)
     printer.print_image(image, density=density, batch_size=batch_size)
 
