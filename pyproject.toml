@@ -1,18 +1,18 @@
-[tool.poetry]
+[project]
 name = "niimprint"
 version = "0.1.0"
 description = ""
 authors = []
-
-[tool.poetry.dependencies]
-python = "~3.11"
-pyserial = "^3.5"
-pillow = "^10.1.0"
-click = "^8.1.7"
+requires-python = ">=3.11"
+dependencies = [
+    "pyserial>=3.5",
+    "pillow>=10.1.0",
+    "click>=8.1.7",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.ruff]
 line-length = 88
